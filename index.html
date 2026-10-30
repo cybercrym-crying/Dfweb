@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="jejak" content="ZmxhZ3tzZXRpYXBfYml0X21lbmluZ2dhbGthbl9qZWpha30=">
+<title>SIDIK — Forensik Digital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Doto:wght@100..900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Martian+Mono:wght@300..700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#000;--dim:rgba(255,255,255,.62);--line:rgba(255,255,255,.22);
+--sans:'Instrument Sans','Helvetica Neue',Arial,sans-serif;--disp:'Doto','Arial Black',Impact,sans-serif;--mono:'Martian Mono',ui-monospace,Menlo,monospace;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:dark}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--ink);color:#fff;font:400 1.05rem/1.6 var(--sans)}
+a,button{color:inherit;text-decoration:none;font:inherit}
+:focus-visible{outline:2px solid currentColor;outline-offset:4px}
+@media (pointer:fine){body,a,button,.tag,.readout{cursor:none}}
+
+#ring,#dot,#chx,#chy{position:fixed;left:0;top:0;pointer-events:none;opacity:0}
+#ring,#dot{z-index:99;mix-blend-mode:difference;background:#fff}
+#ring{width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;background:transparent;border:1.5px solid #fff;transition:width .2s,height .2s,margin .2s,background .2s}
+#dot{width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%}
+#ring.hot{width:72px;height:72px;margin:-36px 0 0 -36px;background:#fff}
+#chx{width:100%;height:1px;background:rgba(255,255,255,.16);z-index:4}
+#chy{width:1px;height:100%;background:rgba(255,255,255,.16);z-index:4}
+#lab{position:fixed;left:0;top:0;z-index:98;pointer-events:none;opacity:0;font:400 .66rem/1.5 var(--mono);background:#000;border:1px solid #fff;padding:.3rem .5rem;white-space:nowrap;transition:opacity .15s}
+@media (pointer:coarse){#ring,#dot,#chx,#chy,#lab{display:none}}
+
+nav{position:absolute;inset:0 0 auto 0;z-index:5;display:flex;justify-content:space-between;align-items:center;padding:1.4rem clamp(1.2rem,4vw,3rem)}
+.logo{font:800 1.5rem/1 var(--disp);letter-spacing:.04em;background:none;border:0;padding:0;color:#fff}
+.logo .b{display:none;font:400 .7rem/1 var(--mono);letter-spacing:0}
+.logo:hover .a{display:none}.logo:hover .b{display:inline}
+.nr{display:flex;gap:1.6rem;align-items:center;font:400 .75rem/1 var(--mono);color:var(--dim)}
+.nr a{color:#fff;border-bottom:1px solid #fff;padding-bottom:.2rem}
+.live::before{content:"";display:inline-block;width:.5rem;height:.5rem;border-radius:50%;background:#fff;margin-right:.5rem;animation:bl 1.4s steps(1) infinite}
+@keyframes bl{50%{opacity:0}}
+
+.hero{position:relative;min-height:100vh;min-height:100svh;display:flex;flex-direction:column;justify-content:flex-end;padding:6rem clamp(1.2rem,4vw,3rem) 2.4rem;overflow:hidden;border-bottom:1px solid var(--line)}
+#field{position:absolute;inset:0;z-index:0}
+.hero>*:not(canvas):not(nav){position:relative;z-index:2}
+h1{margin:0;font:900 clamp(2.4rem,6.6vw,6.8rem)/1 var(--disp);max-width:13ch;pointer-events:none;text-shadow:0 0 22px #000}
+.hero-foot{display:grid;grid-template-columns:minmax(0,34rem) 1fr;gap:2rem;align-items:end;margin-top:2.2rem}
+.hero p{margin:0 0 1.4rem;color:var(--dim);max-width:34rem;text-shadow:0 0 12px #000}
+.btns{display:flex;gap:.8rem;flex-wrap:wrap}
+.btn{display:inline-block;padding:.9rem 1.4rem;border:1.5px solid #fff;font-weight:600;background:#000;transition:background .15s,color .15s}
+.btn.solid{background:#fff;color:#000}
+.btn:hover{background:#fff;color:#000}.btn.solid:hover{background:#000;color:#fff}
+.readout{justify-self:end;text-align:right;font:400 .72rem/1.8 var(--mono);color:var(--dim);background:#000;padding:.6rem .8rem;border:1px solid var(--line)}
+.readout b{color:#fff;font-weight:700}
+@media (max-width:720px){.hero-foot{grid-template-columns:1fr}.readout{justify-self:start;text-align:left}}
+
+.hero>.log,.hero>.tag{z-index:3;font:400 .7rem/1.65 var(--mono);background:rgba(0,0,0,.78);border:1px solid var(--line)}
+.hero>.log{width:min(30rem,42vw);padding:.7rem .9rem;pointer-events:none;margin-bottom:1.6rem}
+.hero>.tag{position:absolute}
+.log .hd{display:flex;justify-content:space-between;color:#fff;font-weight:700;border-bottom:1px solid var(--line);padding-bottom:.4rem;margin-bottom:.4rem}
+.log .ln{display:block;white-space:nowrap;overflow:hidden;color:rgba(255,255,255,.4)}
+.log .ln:last-child{color:#fff}
+.log .ln:last-child::after{content:"_";animation:bl 1s steps(1) infinite}
+.hero>.tag{right:clamp(2.6rem,5vw,4rem);bottom:11.5rem;padding:.7rem .9rem .7rem 1.8rem;color:var(--dim);text-align:left}
+.tag b{display:block;color:#fff}
+.tag::before{content:"";position:absolute;left:.65rem;top:.95rem;width:.5rem;height:.5rem;border:1.5px solid #fff;border-radius:50%}
+.tag.broken b{text-decoration:line-through}.tag.broken::before{background:#fff}
+.rule{position:absolute;right:0;top:0;bottom:0;width:14px;z-index:1;pointer-events:none;opacity:.45;
+background:repeating-linear-gradient(180deg,#fff 0 1px,transparent 1px 50px) right/14px 100% no-repeat,repeating-linear-gradient(180deg,#fff 0 1px,transparent 1px 10px) right/7px 100% no-repeat}
+.rule i{position:absolute;right:18px;font:400 .55rem/1 var(--mono);font-style:normal;color:#fff}
+@media (max-width:900px){.hero>.log,.hero>.tag,.rule i{display:none}}
+
+.tick{overflow:hidden;padding:.8rem 0;white-space:nowrap;font:400 .72rem/1 var(--mono);color:var(--dim)}
+.tick-in{display:inline-block;animation:tk 45s linear infinite}
+.tick span{margin-right:2.2rem}.tick b{color:#fff;font-weight:700;margin-right:2.2rem}
+@keyframes tk{to{transform:translateX(-50%)}}
+
+
+.nr button{background:none;border:0;padding:0;color:inherit;font:inherit}
+#cnt{color:var(--dim)}.nr .live{color:var(--dim)}.lgb{color:var(--dim)!important}.lgb span{color:#fff}
+.ci{background:none;border:0;padding:0;margin-right:2.4rem;color:var(--dim);font:400 .72rem/1 var(--mono)}
+.tick .ci b{color:#fff;font-weight:700;margin-right:.6rem}.ci:hover{color:#fff;text-decoration:underline}.ci.lb{color:#fff;font-weight:700}.ci.rx{letter-spacing:.08em}
+.tick:hover .tick-in{animation-play-state:paused}.tick-in.rev{animation-direction:reverse;animation-duration:9s}
+.doss{position:fixed;inset:0;z-index:97;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.74)}.doss.on{display:flex}
+.paper{background:#fff;color:#000;width:min(36rem,92vw);max-height:86vh;overflow:auto;padding:1.5rem;box-shadow:10px 10px 0 rgba(255,255,255,.22)}
+.paper .meta{font:500 .68rem/1.4 var(--mono)}.paper h3{margin:.4rem 0 0;font:900 2.4rem/1.05 var(--disp)}
+.paper dt{margin-top:1.1rem;font:700 .68rem/1.4 var(--mono)}.paper dd{margin:.2rem 0 0}
+.paper.red .v{background:#000;color:#000}.paper.red .v:hover{color:#fff}
+.hash{margin-top:1.2rem;font:400 .64rem/1.5 var(--mono);word-break:break-all;opacity:.7}
+.paper .row{display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap}
+.paper button{border:1.5px solid #000;background:#fff;color:#000;padding:.5rem .8rem;font:600 .8rem var(--sans)}.paper button:hover{background:#000;color:#fff}
+@media (pointer:fine){.hash,.paper *,.doss{cursor:none}}
+#toast{position:fixed;left:50%;bottom:4rem;transform:translate(-50%,20px);z-index:100;background:#fff;color:#000;font:500 .78rem/1.5 var(--mono);padding:.7rem 1rem;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:90vw}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+.neg .hero,.neg .tick{filter:invert(1)}
+@media (prefers-reduced-motion:reduce){.tick-in,.live::before,.log .ln:last-child::after{animation:none!important}}
+</style>
+</head>
+<body>
+<!-- jejak ditemukan? coba buka console. -->
+<div id="chx"></div><div id="chy"></div><div id="ring"></div><div id="dot"></div><div id="lab"></div><div id="toast" role="status"></div>
+
+<header class="hero" id="hero">
+  <canvas id="field" aria-hidden="true"></canvas>
+  <div class="rule" id="rule" aria-hidden="true"></div>
+  <nav>
+    <button class="logo" id="logo" aria-label="SIDIK"><span class="a">SIDIK</span><span class="b">01010011 01001001 01000100 01001001 01001011</span></button>
+    <div class="nr"><span id="cnt"></span><button class="live" id="clk" aria-label="clock"></button><button class="lgb" id="lgb" aria-label="Bahasa / Language"><span id="l1">ID</span> / <span id="l2">EN</span></button><a id="ct" href="mailto:kontak@sidik.example"></a></div>
+  </nav>
+  <div class="log" aria-hidden="true"><div class="hd"><span id="hd1"></span><span id="hd2"></span></div><div id="lg"></div></div>
+  <div class="tag" id="tag" aria-hidden="true"><b id="tb"></b><span id="tg"></span></div>
+  <h1 id="h1"></h1>
+  <div class="hero-foot">
+    <div>
+      <p id="sub"></p>
+      <div class="btns">
+        <a class="btn solid" id="b1" href="mailto:kontak@sidik.example"></a>
+        <a class="btn" id="b2" href="mailto:kontak@sidik.example?subject=Konsultasi"></a>
+      </div>
+    </div>
+    <div class="readout" aria-hidden="true">x <b id="bx">00000000</b><br>y <b id="by">00000000</b><br><span id="of"></span> <b id="bo">0x000000</b></div>
+  </div>
+</header>
+<div class="tick" id="tick"><div class="tick-in" id="tin"></div></div>
+<div class="doss" id="doss" role="dialog" aria-modal="true"><div class="paper" id="paper"><div class="meta" id="dm"></div><h3 id="dt"></h3><dl><dt id="dh1"></dt><dd class="v" id="df"></dd><dt id="dh2"></dt><dd class="v" id="da"></dd><dt id="dh3"></dt><dd class="v" id="ds"></dd></dl><div class="hash" id="dhash"></div><div class="row"><button id="rdb"></button><button id="nxb"></button><button id="clb"></button></div></div></div>
+
+<script>
+(function(){
+  var FLAG='flag{setiap_bit_meninggalkan_jejak}';
+  function $(i){return document.getElementById(i)}
+  var hero=$('hero'),cv=$('field'),ctx=cv.getContext('2d');
+  var rm=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var lang='id',found={},tz='Asia/Jakarta';
+  try{lang=localStorage.getItem('sidik-lang')||'id';found=JSON.parse(localStorage.getItem('sidik-eggs')||'{}')}catch(e){}
+  function L(a,b){return lang==='id'?a:b}
+  var EG=['flag','wipe','konami','mode','seal','logo','logo5','sudo','idle','clock','freeze','binary','rclick','case','cases5','allcases','redact','hash','rewind','redacted','tab','lang'],N=EG.length;
+  function nf(){return Object.keys(found).length}
+  function updCnt(){$('cnt').textContent=L('jejak ','traces ')+nf()+'/'+N}
+  function egg(id,msg){
+    if(!found[id]){found[id]=1;try{localStorage.setItem('sidik-eggs',JSON.stringify(found))}catch(e){}
+      updCnt();log(L('jejak ditemukan ','trace found ')+nf()+'/'+N);
+      if(nf()===N){msg=L('Semua jejak ditemukan. Kamu penyidik sejati.','All traces found. A true investigator.');for(var i=0;i<3;i++)setTimeout(function(){sw.push({x:ox,y:oy,t0:performance.now(),r:0})},i*500)}}
+    if(msg)say(msg);
+  }
+
+  /* kasus nyata */
+  var C=[
+  {y:'1995',n:'Mitnick',l:[`pelacakan lewat log dan sinyal ponsel`,`tracked via logs and cell signals`],
+   f:[`Pada 15 Februari 1995 Kevin Mitnick ditangkap di Raleigh setelah pakar keamanan Tsutomu Shimomura membantu menelusurinya lewat log jaringan dan sinyal ponsel.`,`On 15 February 1995 Kevin Mitnick was arrested in Raleigh after security expert Tsutomu Shimomura helped trace him through network logs and cell-phone signals.`],
+   a:[`Log jaringan dan pelacakan sinyal seluler.`,`Network logs and cell-signal tracking.`],s:[`Log yang rapi bisa menunjukkan siapa, dari mana, dan kapan.`,`Well-kept logs show who, from where, and when.`]},
+  {y:'2005',n:'BTK',l:[`metadata dari disket yang "dihapus"`,`metadata from a "deleted" floppy`],
+   f:[`Dennis Rader mengirim disket ke stasiun TV di Wichita. Dokumen Word yang sudah dihapus masih menyimpan metadata: "Christ Lutheran Church" dan pengubah terakhir "Dennis". Ia ditangkap 25 Februari 2005.`,`Dennis Rader sent a floppy disk to a Wichita TV station. A deleted Word document still held metadata: "Christ Lutheran Church" and last modified by "Dennis". He was arrested on 25 February 2005.`],
+   a:[`Metadata dokumen Word yang dihapus.`,`Metadata of a deleted Word document.`],s:[`Menghapus berkas tidak sama dengan menghilangkan jejaknya.`,`Deleting a file is not the same as erasing its trace.`]},
+  {y:'2010',n:'Stuxnet',l:[`malware yang dibedah peneliti`,`malware taken apart by researchers`],
+   f:[`Stuxnet ditemukan pada 2010 lalu dibedah para peneliti. Ia memakai beberapa celah zero-day Windows dan menyasar sentrifus nuklir di Iran.`,`Stuxnet was found in 2010 and taken apart by researchers. It used several Windows zero-day flaws and targeted nuclear centrifuges in Iran.`],
+   a:[`Kode malware dan sistem kendali industri (PLC).`,`Malware code and industrial control systems (PLC).`],s:[`Reverse engineering mengungkap target dan tingkat kecanggihan pelaku.`,`Reverse engineering reveals the target and the attacker's sophistication.`]},
+  {y:'2011',n:'Casey Anthony',l:[`84 pencarian yang ternyata 1`,`84 searches that were really 1`],
+   f:[`Di persidangan, jaksa menyebut ada 84 pencarian "chloroform" di komputer keluarga. Analisis ulang menunjukkan hanya satu kunjungan.`,`At trial, prosecutors cited 84 searches for "chloroform" on the family computer. Re-analysis showed only one visit.`],
+   a:[`Riwayat peramban Firefox dan keluaran alat forensik.`,`Firefox browser history and forensic-tool output.`],s:[`Alat forensik bisa keliru. Hasilnya harus diverifikasi silang.`,`Forensic tools can be wrong. Cross-verify the output.`]},
+  {y:'2013',n:'Silk Road',l:[`laptop disita saat masih login`,`laptop seized while still logged in`],
+   f:[`Ross Ulbricht ditangkap pada 1 Oktober 2013 di perpustakaan umum San Francisco. Agen menyita laptopnya dalam keadaan terbuka dan masuk sebagai admin.`,`Ross Ulbricht was arrested on 1 October 2013 in a San Francisco public library. Agents seized his laptop while it was open and logged in as admin.`],
+   a:[`Sesi laptop yang masih aktif (data hidup).`,`The still-active laptop session (live data).`],s:[`Data hidup di memori bisa hilang begitu perangkat dimatikan.`,`Live data in memory can vanish once a device powers off.`]},
+  {y:'2014',n:'Sony Pictures',l:[`atribusi lewat infrastruktur yang sama`,`attribution via shared infrastructure`],
+   f:[`Setelah peretasan Sony Pictures pada November 2014, FBI menyimpulkan pelakunya adalah Korea Utara, antara lain dari kemiripan malware dan infrastruktur yang dipakai.`,`After the Sony Pictures hack in November 2014, the FBI concluded North Korea was responsible, citing malware similarities and shared infrastructure, among other things.`],
+   a:[`Kemiripan kode malware dan alamat IP.`,`Malware code overlaps and IP addresses.`],s:[`Atribusi adalah penilaian, bukan bukti tunggal. Ia bisa diperdebatkan.`,`Attribution is a judgment, not a single proof. It can be disputed.`]},
+  {y:'2016',n:'San Bernardino',l:[`iPhone terkunci, FBI vs Apple`,`locked iPhone, FBI vs Apple`],
+   f:[`FBI meminta Apple membuka iPhone 5C milik pelaku penembakan San Bernardino. Apple menolak. Pada Maret 2016 FBI mengaku berhasil membukanya dengan bantuan pihak luar.`,`The FBI asked Apple to unlock the iPhone 5C of the San Bernardino shooter. Apple refused. In March 2016 the FBI said an outside party had helped it unlock the phone.`],
+   a:[`Ponsel terenkripsi dengan batas percobaan PIN.`,`An encrypted phone with a PIN-attempt limit.`],s:[`Enkripsi kuat menyulitkan akuisisi, dan cara masuknya jadi perdebatan hukum dan etika.`,`Strong encryption makes acquisition hard, and how to get in becomes a legal and ethical debate.`]},
+  {y:'2016',n:'Kafe Olivier',l:[`CCTV sebagai bukti, keasliannya dipersoalkan`,`CCTV as evidence, its authenticity disputed`],
+   f:[`Rekaman CCTV Kafe Olivier jadi bukti penting di kasus "kopi sianida". Pembela mempertanyakan keasliannya dan tidak adanya berita acara pemindahan dari DVR ke flash disk. Jaksa menyatakan rekaman sudah diperiksa ahli forensik digital. Vonis: 20 tahun.`,`CCTV footage from Café Olivier was key evidence in the "cyanide coffee" case. The defense questioned its authenticity and the lack of a handover record from DVR to flash drive. Prosecutors said digital forensic experts had examined it. Verdict: 20 years.`],
+   a:[`Rekaman DVR dan berita acara pengambilannya.`,`DVR footage and its acquisition record.`],s:[`Rantai penyimpanan dan berita acara sama pentingnya dengan isi rekaman.`,`Chain of custody and acquisition records matter as much as the footage.`]},
+  {y:'2017',n:'WannaCry',l:[`sakelar mati ditemukan di dalam kode`,`a kill switch found inside the code`],
+   f:[`WannaCry menyebar ke seluruh dunia pada Mei 2017. Peneliti Marcus Hutchins mendaftarkan domain yang ditemukan di kode malware, dan itu menghentikan penyebarannya.`,`WannaCry spread worldwide in May 2017. Researcher Marcus Hutchins registered a domain found in the malware code, which halted its spread.`],
+   a:[`Domain yang tertanam di kode malware.`,`A domain hard-coded in the malware.`],s:[`Membaca kode sampai tuntas kadang menemukan titik lemah penyerang.`,`Reading the code all the way through can reveal the attacker's weak point.`]},
+  {y:'2017',n:'Equifax',l:[`147 juta orang, satu celah belum ditambal`,`147 million people, one unpatched flaw`],
+   f:[`Peretasan Equifax pada 2017 membuka data sekitar 147 juta orang. Penyusupan memanfaatkan celah Apache Struts yang belum ditambal.`,`The 2017 Equifax breach exposed data on about 147 million people. The intrusion exploited an unpatched Apache Struts flaw.`],
+   a:[`Log server web dan riwayat akses.`,`Web server logs and access history.`],s:[`Log yang lengkap menentukan seberapa jauh kerusakan bisa dipastikan.`,`Complete logs determine how far the damage can be established.`]},
+  {y:'2022',n:'Bjorka',l:[`akun bukan orang: siapa di baliknya?`,`an account is not a person: who is behind it?`],
+   f:[`Pada 2022 polisi menangkap seorang pemuda di Madiun yang dikaitkan dengan jaringan Bjorka, tetapi ia dinilai bukan sosok utamanya. Pada September 2025 polisi menangkap WFT (22) di Minahasa dan menyebutnya pemilik akun @bjorka; klaim itu masih dipertanyakan sebagian pihak.`,`In 2022 police arrested a young man in Madiun linked to the Bjorka network, but he was judged not to be the main figure. In September 2025 police arrested WFT (22) in Minahasa and called him the owner of the @bjorka account; some parties still question that claim.`],
+   a:[`Akun media sosial, kanal Telegram, dan jejak unggahan data.`,`Social media accounts, Telegram channels, and data-dump traces.`],s:[`Menghubungkan akun ke seorang manusia butuh bukti berlapis.`,`Linking an account to a human being takes layered evidence.`]}
+  ];
+
+  /* ---------- tangan 3D dari foto referensi ---------- */
+  var W,H,dpr,sc,ox,oy,vis=true,tx=-999,ty=-999,cx=-999,cy=-999,yaw=-.3,pit=-.05,sw=[],P=[];
+  var shades=[];for(var i=0;i<10;i++)shades.push('rgba(255,255,255,'+(0.1+i*.09).toFixed(2)+')');
+  function add(x,y,z,t){P.push({x:x,y:y,z:z,b:Math.random()<.5?1:0,h:Math.random()*16|0,vx:Math.random()*2-1,vy:Math.random()*2-.4,t:t})}
+  var mode=0,dis=0,fz=false,HX='0123456789ABCDEF',SD='SIDIKFORENSIC...';
+  function flip(p){p.b^=1;p.h=Math.random()*16|0}
+  function ch(p){return mode==0?p.b:(mode==1?HX[p.h]:SD[p.h%13])}
+  var DATA='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bFV12HJVdMl0VXTFeFRzwHxTc8CCU3PChFNzvYpTcrOMVXPBkFVyuJZTb6OYVW6qnVVrrZ5Ta7ClVGKdplNguaxTUKmwVEOZtFM9nrZTOJy8VCiUvVUhk8NUKJvHVCegzFMrodBTK6DTUyaa1VQdk9hTHpPYVRCa2FQYj05WG/9QVzz/T1cw/1NWTP9QVjr/VVVS/1xXa/1eVm38Y1d07WRYddprWHXSbld1znFXdM50V3O+d1Vzwn5Wc72BV3K5hldzwopXcrmOV3PFjlZzwpRWcruXV2+5mlZsqqFWY6GiWFiXqFZOkapWTJatVzeDrVc3g7JXKIuyVjWNtVYsjLhXFpK7Vw6iuVYdjb9XEKK/VxCiv1cQosFXEKLCVhafwlYbl8dXDKLHVwyixVYXkspXD6LKVhqiylcPos5XD57OVhuZzlcPntNWEJzRVhmP0lcMok5ZOP9OWTL/U1hQ/1VYWv9ZWWj/XVlw82FZdOxmWHbYaVl1ym5ZdMNyWHTLdllzvXlYc718WXK5gllzvoNZc8qJWXLAjVlxuJJZcLuVWW/DmFhswJ1ZXZWeWVmZpFhVkqlZOoumWE6JrFkshaxYNIqvWSKSsFkXl0xaJv9LWyP/TFs1/1BcUP9PW0X/UltV/1VbYP9aWmz6Xlpy9GJcdthmW3XOalp0yG1cdNBzWnK1c1xzvnpbcrt+W3K5g1pzyoRbc8eHXHO9i1xxuJFbb7mWW2mzmVpntptcX7GeW1OOolpOjaVcMpekWz+PqFosjahbIpJLXTD/S143/1BdUP9QXVP/V15p+FteceRgXnXZYV113Ghddc5qXXTKbl10xXFdc712XnK4eV1yu3xecrOCXnPChl5zvodec76LXnCtkF5trZZeY6+XXl+xnV5PqqBePImfXUeKol4vkqNdLZKjXTKSR2Ad/0dgGP9GYRv/R2Ai/0hhL/9JYCz/TGBK/1BfWv9QYF3/VmBq7FxfctxgYHTQYV90zGZgc8JrX3PAa19zu3Jgcr91YHK2eV9yuXxhcr+AYXPChF9zyIZfcrSMYHCxkGBrqJRfZqeXYVunmmBQpJtgSaSfYDqtoGEjrZ9fP5tFYxf/RmEf/0tjTv9PYVv/UmFj91Rja+1aYXHWX2NytmNhc7xkYnK1amNysG9jca5xYnKydGJysHdhcrl8YnK5gGNzxoNhc8KJYnG1jWNsrZBiaKeVYWCql2NYnZtiSqWbYkyvoGIarZ9hKKqgYhqtn2MkqqBjGLBHZUH/R2VB/0xjVP9OZV//UGVm+ldmcdVaZHLMYGRxs2NkcrJlZHKwaGRwqWxlcLBzY3Gyc2NxsntjcsV9ZHK/gGRzu4VjcriKZW+yi2RutpBlYqOUZFyal2ZKl5xlNKGcZTecQmce/0JnI/9DZyj/SGZL/0hoUP9LZlj/UGdo+1Fna/VWZnDdWGZxzV5nca5gZnGuZmZwqmlncLJvaHCqcmZxtXRncbV7ZnLFfWZzvoBmc8KDZnK4h2dwvoxnabOQaF2olGdTopdnQ52ZZj2cm2cmnJtnLZeaZjuXQ2o//0VoQf9GaUr/Smlc/1BqbPpTaXDoV2ly0FxqcbxganC0YWlwqGdocKZqaHClbGlwpm9pcK50anG2eWlyuX5pc75/aHPChWhxu4dpb7eMaGi0kGlZoZJoVqSXajShlmlDoD9sH/9Aah3/QGwq/z9sH/8/bB//QWsv/0NsRv9IbFv/SWtd/05sbfhTa3LgVmxz1Fhsc8hea3K7Y2txtWRrcbNoanCybWxwqnBsca53bHK6e2xzwn1sc8GBa3LAhGtxv4Zrb7yNbF+oj2xZpJJsTKCUbESjl2woqpZqPqeYayeqP24o/z1vHf9DbEj/SG5g/0tuaftQbXHsVG101VVtdM5abnPCXmxys2NtcbNnbHCra25wpmttcKpwbnCwc25ys3hucr99bXO9gG9xuoNtccCIbmm6jG1ir5BuTJmVbTamlGxEoD9wQP8/cT7/QnFP/0hxZf9Mb233UHBy31NxdM5XcHTEWHBzwF1wcrJhcXGuZnFwqmhwcKpub3Cqc3BxunVwcrp5cHK+fHFxtoBvcbqEb27BiHBltY1vV7CQcUajkHFGo5VvLaqUcSmmlHAnqj1zOv88cy7/PHMr/z5zQP9Bc1L/QnNY/0ZyY/9Lcm70TXNy51NzdM9Vc3O9W3Jxq15zcbVhcnCpZ3JwqmlycKlvc3CwcXNxtnVzca14c3K6fnNutYBybrSFc2OyiHFitItzUbGOcU2wjnNFszt1Mf88dD3/QHRU/0N0YP9FdWX/SXRu+FB0dNtRdXXNV3Nzvlp1cr5ddnKzY3VxrmhzcK5odnGubnRxrnJ1cbl1c3G2d3RxsntzcLSBdGezg3VirIh1VKuNdUOxjHVHsY90Oq2RdCOhkHUkqjh3Gf85dij/OHcZ/zh3Gf84dyH/PXhO/zx2Rf8+eFH/RHZl/0Z2af9Jd3DyT3d111B2ddZVdnTGWXh0zV52crtieHKyZ3dyu2l3ca5teHGzcndxsXZ3cLR5dm6ufHZsr4N4W6qGeFCiindFqIp2SaiNdjyyjngXsDZ6F/84eCn/OHkk/zx6S/88eUv/P3lb/0F5X/9GeW30SXly4lB5dMtTenTKV3l0ylh6c8ZdeXPDYnlys2d5ca1reXGybnlxtG94cbV1eW2ueXlrrnx5Z62Aelykg3pOnIp5M6aKeS+mN3wv/zh7OP89elT/PXtW/0J7aPlGe2/xTH11zU57dc1Te3TFVnx0ylh8c75fe3PDYXxyuWR8cbNqe3G1bnxurHB7bax1fWSjeXtkoX97WaCCelOfhHtIoIZ8OqGHejqmiHo0oYh8IaY3fTT/N300/zx9Vv9AfmT6RH9u7UZ/cOFMfnTOT350ylF/dMRXfXTKWX5zyF5+c75kf3GzaH5ytWt/b7Rrfm+zcH9nrXR/XpJ5flaRfX9GkIJ+QJSBfUeWg381nIV+J6GFfiehNYAt/zOBG/kzgR36OIFN/ziBTv89gF/+P4Fl+UWAcOVFf2/mSoFzyFCAdMRTgHPCVH9zwlqAdMZfgHPMY4ByuGaBcbVogW+zb4Flq2+AZqx1gVKeeIBQjHqASYd7f0uJfYA4koKBFp5/gSKXgYAlnDWCNv8yhCH/N4JH/ziDTf88g17/P4Np8EKCbelJg3PSTIJ0xkyEdMxUgnTGV4Fzx1qDdMZeg3TQZIJyvWaCcbtogm+2bYNmq3KBXaZzhFOfeYM2l3mDOZc0hTr/MoYt/zaER/88hmL9PoVn90KFbuNIhHTaS4V0zE2FdMpRhHTLWIR0yVqFdMZehHTPY4RzxGWGcLprhmWybYZirXKEVKF3hD6fdYRHnniEOZ57hBmee4QZnjCHGf8xhiX/MYcg/zGIMP8whxn/Mocz/zGHLf84hlX/OYhe/j6HavVBh2/rRod00kqGdM5QhnTPUod0xVWIdMpYh3TKXoZ0xmOHcsZlh2+4a4ZntG6IWatwhlerdocypnSGR6cwiy3/MYow/y+LI/80i0z/NIpK/ziJXf86iGH/QYtx4kOJc+JGiXTWSol1zkyKdM9TiHTJVol0ylqKdMpeinTJ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';
+  (function(){var s=atob(DATA);for(var i=0;i<s.length;i+=4){var X=s.charCodeAt(i)/255*330-165,Y=-(s.charCodeAt(i+1)/255*550-275),Z=s.charCodeAt(i+2)/255*64,T=s.charCodeAt(i+3)/255;add(X,Y,Z,T);if(Z>3)add(X,Y,-Z*.92,T*.55)}})();
+  var A=[];for(var i=0;i<240;i++)A.push({x:Math.random(),y:Math.random(),b:Math.random()<.5?1:0});
+
+  function size(){
+    dpr=Math.min(window.devicePixelRatio||1,2);W=hero.clientWidth;H=hero.clientHeight;
+    cv.width=W*dpr;cv.height=H*dpr;cv.style.width=W+'px';cv.style.height=H+'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);ctx.textBaseline='middle';ctx.textAlign='center';
+    var narrow=W<900;
+    sc=narrow?Math.min(H*.5/550,W*.8/330):Math.min(H*.88/550,W*.42/330);
+    ox=narrow?W*.5:W*.7;oy=narrow?H*.36:H*.5;
+    ctx.font=Math.max(8,Math.min(13,sc*6))+'px "Martian Mono",monospace';
+    var ru=$('rule');ru.innerHTML='';
+    for(var y=100;y<H;y+=100){var l=document.createElement('i');l.style.top=(y-4)+'px';l.textContent=y/10;ru.appendChild(l)}
+  }
+  size();addEventListener('resize',size);
+  if('IntersectionObserver' in window)new IntersectionObserver(function(e){vis=e[0].isIntersecting}).observe(hero);
+
+  /* ---------- utilitas ---------- */
+  var toast=$('toast'),tt;
+  function say(m){toast.textContent=m;toast.classList.add('on');clearTimeout(tt);tt=setTimeout(function(){toast.classList.remove('on')},3400)}
+  var lg=$('lg'),n=0;
+  function hx(k){var s='';for(var i=0;i<k;i++)s+='0123456789abcdef'[Math.random()*16|0];return s}
+  function clock(){return new Date().toLocaleTimeString('en-GB',{timeZone:tz,hour12:false})}
+  function log(m){var d=document.createElement('span');d.className='ln';d.textContent='['+clock()+'] '+m;lg.appendChild(d);while(lg.children.length>6)lg.removeChild(lg.firstChild)}
+  var M=[function(){return 'mount /dev/sdb1 -o ro,noexec'},function(){return L('write-blocker aktif','write-blocker on')},
+  function(){return L('imaging blok 0x','imaging block 0x')+hx(6).toUpperCase()+' ok'},function(){return 'sha256 '+hx(8)+'... '+L('cocok','match')},
+  function(){return L('pesan terhapus dipulihkan: ','deleted messages recovered: ')+(200+Math.random()*300|0)},function(){return 'carving JPEG: '+(40+Math.random()*80|0)+L(' berkas',' files')},
+  function(){return 'timeline: '+(3000+Math.random()*2000|0)+L(' peristiwa',' events')},function(){return L('rantai bukti ditandatangani','chain of custody signed')}];
+  for(var i=0;i<6;i++)log(M[n++%M.length]());
+  if(!rm)setInterval(function(){if(!fz)log(M[n++%M.length]())},1300);
+  var clk=$('clk');function tick(){clk.textContent=(tz==='UTC'?'UTC ':'WIB ')+clock()}
+  setInterval(tick,1000);
+
+  /* ---------- teks dua bahasa ---------- */
+  var broken=false;
+  function setTag(){$('tg').innerHTML=broken?L('Segel dibuka<br>rantai bukti terputus','Seal broken<br>chain of custody lost'):L('Ponsel, disegel<br>hash terkunci','Phone, sealed<br>hash locked')}
+  function renderTick(){
+    var h='',r;
+    for(r=0;r<2;r++){
+      h+='<span class="ci lb">'+L('KASUS NYATA','REAL CASES')+'</span>';
+      C.forEach(function(c,i){
+        h+='<button class="ci" data-i="'+i+'"'+(r?' tabindex="-1"':'')+'><b>'+c.y+'</b>'+c.n+', '+c.l[lang==='id'?0:1]+'</button>';
+        if(i==5)h+='<button class="ci rx" data-rx="1"'+(r?' tabindex="-1"':'')+'>██████ 20██ ['+L('DIREDAKSI','REDACTED')+']</button>';
+      });
+    }
+    $('tin').innerHTML=h;
+  }
+  function apply(){
+    document.documentElement.lang=lang;
+    $('h1').textContent=L('Setiap bit meninggalkan jejak.','Every bit leaves a trace.');
+    $('sub').textContent=L('Kami memulihkan, menganalisis, dan membuktikan bukti digital, dengan prosedur yang bisa dipertanggungjawabkan di pengadilan.','We recover, analyze, and prove digital evidence, with procedures that stand up in court.');
+    $('b1').textContent=L('Laporkan insiden','Report an incident');$('b2').textContent=L('Konsultasi dengan tim','Talk to the team');
+    $('hd1').textContent=L('sesi akuisisi','acquisition session');$('hd2').textContent=L('kasus 0147','case 0147');
+    $('tb').textContent=L('Barang bukti A-0147','Evidence item A-0147');$('ct').textContent=L('Kontak','Contact');
+    $('l1').style.fontWeight=lang==='id'?700:400;$('l2').style.fontWeight=lang==='en'?700:400;
+    setTag();updCnt();tick();renderTick();if(open>=0)fillDoss();
+  }
+
+  /* ---------- berkas kasus ---------- */
+  var open=-1,seen={};
+  function hashIt(s){var el=$('dhash');el.textContent='sha256 ...';
+    if(!(window.crypto&&crypto.subtle)){el.textContent='sha256 n/a';return}
+    crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)).then(function(b){el.textContent='sha256 '+Array.from(new Uint8Array(b)).map(function(x){return ('0'+x.toString(16)).slice(-2)}).join('')}).catch(function(){el.textContent='sha256 n/a'})}
+  function fillDoss(){
+    var c=C[open],k=lang==='id'?0:1;
+    $('dm').textContent=L('BERKAS KASUS ','CASE FILE ')+c.y+' / '+(open+1)+'-'+C.length;$('dt').textContent=c.n;
+    $('df').textContent=c.f[k];$('da').textContent=c.a[k];$('ds').textContent=c.s[k];
+    $('dh1').textContent=L('Fakta','Facts');$('dh2').textContent=L('Artefak kunci','Key artifact');$('dh3').textContent=L('Pelajaran forensik','Forensic lesson');
+    $('rdb').textContent=L('Redaksi','Redact');$('nxb').textContent=L('Kasus acak','Random case');$('clb').textContent=L('Tutup','Close');
+    hashIt(c.y+c.n+c.f[k]+c.a[k]+c.s[k]);
+  }
+  function openD(i){
+    open=i;seen[i]=1;var k=Object.keys(seen).length;fillDoss();$('doss').classList.add('on');egg('case');
+    if(k===5)egg('cases5',L('5 berkas dibuka. Kamu mulai paham.','5 files opened. You are getting it.'));
+    if(k===C.length)egg('allcases',L('Semua berkas dibaca. Arsiparis sejati.','Every file read. A true archivist.'));
+  }
+  function closeD(){$('doss').classList.remove('on');open=-1}
+  $('doss').addEventListener('click',function(e){if(e.target===this||e.target.id==='clb')closeD()});
+  $('rdb').addEventListener('click',function(){var r=$('paper').classList.toggle('red');if(r)egg('redact',L('Dokumen diredaksi. Arahkan kursor untuk "membocorkan".','Document redacted. Hover to "leak" it.'))});
+  $('nxb').addEventListener('click',function(){var j;do{j=Math.random()*C.length|0}while(j===open);openD(j)});
+  $('dhash').addEventListener('click',function(){egg('hash',L('Ubah satu huruf saja, hash-nya berubah total.','Change a single letter and the hash changes completely.'))});
+  $('tick').addEventListener('click',function(e){
+    var b=e.target.closest('.ci');if(!b)return;
+    if(e.shiftKey){$('tin').classList.add('rev');setTimeout(function(){$('tin').classList.remove('rev')},4000);egg('rewind',L('Memutar mundur timeline.','Rewinding the timeline.'));return}
+    if(b.dataset.rx){egg('redacted',L('Berkas ini masih disegel penyidik. Tidak ada yang bisa dibaca.','This file is still sealed by investigators. Nothing to read.'));return}
+    if(b.dataset.i!==undefined)openD(+b.dataset.i);
+  });
+
+  /* ---------- kursor ---------- */
+  var ring=$('ring'),dot=$('dot'),chx=$('chx'),chy=$('chy'),lab=$('lab');
+  var rx=0,ry=0,mx=0,my=0,hits=0,idleT;
+  function idleReset(){clearTimeout(idleT);idleT=setTimeout(function(){log(L('sesi tidak aktif','session inactive'));egg('idle',L('Kursor diam 15 detik. Sesi dianggap ditinggalkan.','Cursor still for 15 seconds. Session considered abandoned.'))},15000)}
+  function move(e){
+    var p=e.touches?e.touches[0]:e,r=hero.getBoundingClientRect();
+    mx=p.clientX;my=p.clientY;tx=mx-r.left;ty=my-r.top;idleReset();
+    ring.style.opacity=dot.style.opacity=1;chx.style.opacity=chy.style.opacity=1;
+    dot.style.transform='translate('+mx+'px,'+my+'px)';
+    chx.style.transform='translateY('+my+'px)';chy.style.transform='translateX('+mx+'px)';
+  }
+  addEventListener('pointermove',move,{passive:true});addEventListener('touchmove',move,{passive:true});
+  document.addEventListener('pointerleave',function(){tx=ty=-999;ring.style.opacity=dot.style.opacity=chx.style.opacity=chy.style.opacity=lab.style.opacity=0});
+  document.addEventListener('pointerover',function(e){ring.classList.toggle('hot',!!(e.target.closest&&e.target.closest('a,button,.tag,.readout,.hash')))});
+  idleReset();
+
+  /* ---------- interaksi ---------- */
+  hero.addEventListener('pointerdown',function(e){
+    if(e.target.closest('a,button,.tag,.readout'))return;
+    var r=hero.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+    sw.push({x:x,y:y,t0:performance.now(),r:0});if(sw.length>3)sw.shift();
+    log(L('sampel diambil @ ','sample taken @ ')+Math.round(x)+','+Math.round(y));
+  });
+  hero.addEventListener('contextmenu',function(){log(L('klik kanan: tidak ada metadata tersembunyi di sini','right-click: no hidden metadata here'));egg('rclick',L('Metadata? Coba lihat <meta> di sumber halaman.','Metadata? Try the <meta> in the page source.'))});
+  var tag=$('tag');tag.style.pointerEvents='auto';
+  tag.addEventListener('click',function(){
+    broken=!broken;tag.classList.toggle('broken',broken);setTag();
+    log(broken?L('PERINGATAN segel dibuka tanpa berita acara','WARNING seal opened without a record'):L('segel dipasang ulang, hash dihitung ulang','seal replaced, hash recomputed'));
+    if(broken)egg('seal',L('Segel dibuka. Di pengadilan, bukti ini bisa ditolak.','Seal broken. In court, this evidence could be rejected.'));
+  });
+  var logoN=0;
+  $('logo').addEventListener('click',function(){logoN++;egg('logo',L('SIDIK = 53 49 44 49 4B (hex ASCII)','SIDIK = 53 49 44 49 4B (ASCII in hex)'));
+    if(logoN>=5){logoN=0;egg('logo5',L('Anda bukan root. Insiden ini akan dilaporkan.','You are not root. This incident will be reported.'))}});
+  var MN=[['biner','binary'],['heksadesimal','hexadecimal'],['karakter SIDIK','SIDIK letters']];
+  document.querySelector('.readout').addEventListener('click',function(){mode=(mode+1)%3;var m=L(MN[mode][0],MN[mode][1]);egg('mode',L('Tampilan data: ','Data view: ')+m);log(L('tampilan data: ','data view: ')+m)});
+  clk.addEventListener('click',function(){tz=tz==='UTC'?'Asia/Jakarta':'UTC';tick();egg('clock',L('Zona waktu mengubah arti stempel waktu. Selalu catat zonanya.','Time zones change what a timestamp means. Always record the zone.'))});
+  $('lgb').addEventListener('click',function(){lang=lang==='id'?'en':'id';try{localStorage.setItem('sidik-lang',lang)}catch(e){}apply();egg('lang',L('Bahasa: Indonesia','Language: English'))});
+  function wipe(){dis=performance.now();log(L('menghapus data...','deleting data...'));egg('wipe',L('Data dihapus. Tenang, jangan dimatikan.','Data deleted. Stay calm, do not power off.'));
+    setTimeout(function(){log(L('carving: struktur berkas ditemukan','carving: file structure found'))},1100);
+    setTimeout(function(){log(L('pemulihan 100%, hash cocok','recovery 100%, hash match'));say(L('Dipulihkan. Itulah gunanya forensik.','Recovered. That is what forensics is for.'))},2600)}
+  function binaryH1(){var h=$('h1'),o=h.textContent;h.style.fontSize='clamp(1.6rem,4vw,4.2rem)';h.textContent='01001010 01000101 01001010 01000001 01001011';egg('binary',L('JEJAK, dalam biner.','TRACE, in binary... (JEJAK).'));setTimeout(function(){h.style.fontSize='';apply()},3500)}
+
+  var KO=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'],ki=0,typed='',hid=false;
+  addEventListener('keydown',function(e){
+    idleReset();
+    if(e.key==='Escape'&&open>=0){closeD();return}
+    if(e.code==='Space'&&e.target.tagName!=='BUTTON'){e.preventDefault();fz=!fz;egg('freeze',fz?L('Bukti dibekukan. Tidak ada yang berubah.','Evidence frozen. Nothing changes.'):L('Bukti dilepas.','Evidence released.'));log(fz?L('bukti dibekukan','evidence frozen'):L('bukti dilepas','evidence released'))}
+    ki=(e.key===KO[ki])?ki+1:(e.key===KO[0]?1:0);
+    if(ki===KO.length){ki=0;var on=document.documentElement.classList.toggle('neg');egg('konami',on?L('Mode negatif: begini bukti foto dibaca.','Negative mode: this is how photo evidence is read.'):L('Mode normal.','Normal mode.'))}
+    if(e.key.length===1){typed=(typed+e.key.toLowerCase()).slice(-8);
+      if(/sidik$/.test(typed)){typed='';egg('flag',FLAG);log(L('flag ditemukan','flag found'));sw.push({x:ox,y:oy,t0:performance.now(),r:0})}
+      else if(/hapus$/.test(typed)){typed='';wipe()}
+      else if(/sudo$/.test(typed)){typed='';egg('sudo',L('sudo: izin ditolak. Insiden ini akan dilaporkan.','sudo: permission denied. This incident will be reported.'));log('sudo: permission denied')}
+      else if(/jejak$/.test(typed)){typed='';binaryH1()}
+      else if(/(kasus|case)$/.test(typed)){typed='';openD(Math.random()*C.length|0)}}
+  });
+  document.addEventListener('visibilitychange',function(){
+    if(document.hidden){hid=true;document.title=L('Bit tidak pernah hilang…','Bits never disappear…')}
+    else{document.title='SIDIK — '+L('Forensik Digital','Digital Forensics');if(hid)egg('tab',L('Selamat datang kembali. Selama kamu pergi, 0 bit berubah.','Welcome back. While you were away, 0 bits changed.'))}});
+  console.log('%cSIDIK','font:900 28px monospace',L('\nAnda sedang memeriksa halaman ini. Kami suka itu.\nPetunjuk: <meta name="jejak">, ↑↑↓↓←→←→ B A, panel koordinat, label bukti, jam di navigasi, pita kasus (coba shift+klik), spasi, klik kanan, diam 15 detik.\nBeberapa kata punya arti di sini. Ketik saja.','\nYou are inspecting this page. We like that.\nHints: <meta name="jejak">, ↑↑↓↓←→←→ B A, the coordinate panel, the evidence tag, the nav clock, the case ticker (try shift+click), space, right-click, stay idle for 15 seconds.\nSome words mean something here. Just type.'));
+
+  var bx=$('bx'),by=$('by'),bo=$('bo');
+  function bin(v){return (Math.max(0,Math.round(v))&255).toString(2).padStart(8,'0')}
+  function hex(v){return '0x'+(Math.max(0,v)>>>0).toString(16).toUpperCase().padStart(6,'0')}
+  var R=150;
+
+  function frame(){
+    var t=performance.now();
+    rx+=(mx-rx)*.18;ry+=(my-ry)*.18;
+    ring.style.transform='translate('+rx+'px,'+ry+'px)';
+    lab.style.transform='translate('+(rx+22)+'px,'+(ry+22)+'px)';
+    cx+=(tx-cx)*.2;cy+=(ty-cy)*.2;
+    var on=tx>-900,yT,pT,calm=rm||fz;
+    if(on){yT=-.3+(tx/W-.5)*1.7;pT=-.05+(ty/H-.5)*.6}
+    else{yT=-.3+(calm?0:Math.sin(t/2600)*.55);pT=-.05+(calm?0:Math.sin(t/3300)*.12)}
+    if(!fz){yaw+=(yT-yaw)*.06;pit+=(pT-pit)*.06}
+    if(vis){
+      ctx.clearRect(0,0,W,H);
+      ctx.fillStyle=shades[0];
+      for(var i=0;i<A.length;i++){var a=A[i];ctx.fillText(a.b,a.x*W,a.y*H)}
+      var cY=Math.cos(yaw),sY=Math.sin(yaw),cP=Math.cos(pit),sP=Math.sin(pit);
+      var scanY=((t/7)%620)-310,k,j;hits=0;
+      var ds=0;if(dis){var e=t-dis;if(e<900)ds=Math.pow(e/900,2);else if(e<2600)ds=Math.pow(1-(e-900)/1700,2);else dis=0}
+      for(j=sw.length-1;j>=0;j--){sw[j].r=(t-sw[j].t0)*.9;if(sw[j].r>Math.max(W,H)*1.3)sw.splice(j,1)}
+      for(var i2=0;i2<P.length;i2++){
+        var p=P[i2],x1=p.x*cY+p.z*sY,z1=-p.x*sY+p.z*cY;
+        var y2=p.y*cP-z1*sP,z2=p.y*sP+z1*cP;
+        var f=900/(900-z2),sx=ox+x1*sc*f,sy=oy-y2*sc*f;
+        k=0;
+        if(on&&!rm){
+          var dx=sx-cx,dy=sy-cy,d=Math.sqrt(dx*dx+dy*dy);
+          if(d<R){k=1-d/R;sx+=dx/(d+1)*k*16;sy+=dy/(d+1)*k*16;if(!fz&&Math.random()<k*.3)flip(p);if(k>.5)hits++}
+        }
+        var w=0;
+        for(j=0;j<sw.length;j++){
+          var q=sw[j],ex=sx-q.x,ey=sy-q.y,ed=Math.sqrt(ex*ex+ey*ey)||1,df=Math.abs(ed-q.r);
+          if(df<70){var ww=1-df/70;sx+=ex/ed*ww*26;sy+=ey/ed*ww*26;if(ww>w)w=ww;if(Math.random()<ww*.4)flip(p)}
+        }
+        if(!calm&&Math.random()<.0015)flip(p);
+        var zn=Math.min(1,Math.max(0,(z2+140)/280)),al=(.18+.82*zn)*Math.min(1,p.t*1.4)+k*.8+w*.9;
+        if(ds>0){sx+=p.vx*ds*260;sy+=p.vy*ds*260;al*=1-ds*.5}
+        if(!calm&&Math.abs(p.y-scanY)<8)al=1;
+        ctx.fillStyle=shades[Math.max(0,Math.min(9,Math.floor(al*10)))];
+        ctx.fillText(ch(p),sx,sy);
+      }
+      if(hits>24){lab.textContent=L('sampel: jaringan tangan / kecocokan ','sample: hand tissue / match ')+Math.min(99,Math.round(hits/8))+'%';lab.style.opacity=1}else lab.style.opacity=0;
+      bx.textContent=bin(cx<0?0:cx);by.textContent=bin(cy<0?0:cy);
+      bo.textContent=hex(Math.max(0,Math.round(cy))*Math.round(W)+Math.max(0,Math.round(cx)));
+    }
+    requestAnimationFrame(frame);
+  }
+  apply();frame();
+})();
+</script>
+</body>
+</html>
